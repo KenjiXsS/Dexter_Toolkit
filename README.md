@@ -1,222 +1,188 @@
 # Dexter Toolkit
 
-![Version](https://img.shields.io/badge/Version-1.0-blue)
-![License](https://img.shields.io/badge/License-MIT-green)
-![Platform](https://img.shields.io/badge/Platform-Linux-lightgrey)
+```
+  ██████╗ ███████╗██╗  ██╗████████╗███████╗██████╗
+  ██╔══██╗██╔════╝╚██╗██╔╝╚══██╔══╝██╔════╝██╔══██╗
+  ██║  ██║█████╗   ╚███╔╝    ██║   █████╗  ██████╔╝
+  ██║  ██║██╔══╝   ██╔██╗    ██║   ██╔══╝  ██╔══██╗
+  ██████╔╝███████╗██╔╝ ██╗   ██║   ███████╗██║  ██║
+  ╚═════╝ ╚══════╝╚═╝  ╚═╝   ╚═╝   ╚══════╝╚═╝  ╚═╝
+         ·  TONIGHT IS THE NIGHT  ·
+```
 
-Dexter Toolkit orquestra, em um único painel interativo, várias etapas comuns de reconhecimento ofensivo. O `dexter.sh` detecta quais binários estão instalados, apresenta apenas opções viáveis e executa cada módulo em tempo real, sem gerar arquivos temporários.
+**Dexter** is an interactive penetration testing framework built as a single Bash script. It provides a unified shell interface for orchestrating security tools, managing session state, logging findings, and exporting structured reports — all from one place.
 
-## Principais módulos
+Designed for authorized engagements, CTF competitions, and security research.
 
-- **Run all** — dispara, em sequência, todos os módulos disponíveis na máquina.
-- **Nmap** — presets rápidos de varredura (`-sV`, `-A`, `-p-`, etc.) com ajuste de portas adicionais.
-- **crt.sh** — enumeração de subdomínios via API pública com parsing opcional por `jq`.
-- **Subfinder** — integração direta com o binário `subfinder`.
-- **Dirsearch** — execução local do `dirsearch.py` clonado no repositório.
-- **FFUF** — brute force de conteúdo com seleção de wordlists em `seclists/` ou `wordlists/`.
-- **XSStrike** — detecção automática do binário local, módulo Python ou repositório clonado do XSStrike.
-- **HTTPX** — sondagem HTTP/HTTPS rápida com detecção de tecnologias, títulos e status codes.
-- **RustScan** — scanner de portas ultrarrápido com integração ao Nmap.
-- **SQLMap** — detecção e exploração automatizada de vulnerabilidades de injeção SQL.
-- **BloodHound** — coletor de dados do Active Directory para análise de relações e caminhos de ataque.
-- **Evil-WinRM** — shell interativo WinRM para acesso remoto a sistemas Windows.
-- **Impacket** — conjunto de ferramentas Python para protocolos de rede (SMB, Kerberos, etc).
-- **Banner & limpeza** — utilitários para refrescar a interface.
+---
 
-## Prerequisites
+## Features
 
-Before using Dexter Toolkit, make sure you have the following installed:
+### Interactive Shell
+- Persistent session state: target, notes, findings, command history
+- Color-coded terminal UI with boxed section headers and run banners
+- Input validation for IPs, domains, and URLs
+- Built-in command history with up-arrow recall
 
-- **Bash 4+**
-- **Git**
-- **Python 3** (para `dirsearch` e XSStrike via repositório)
-- **curl** e **jq**
-- **nmap**, **ffuf**, **subfinder** (o `dexter.sh` ignora o que não estiver presente)
-- **Go** (caso deseje instalar `ffuf`/`subfinder` via `go install`)
-- **pip/pip3** (para dependências Python do XSStrike)
+### Tool Detection
+Dexter automatically detects which tools are installed and shows their availability at startup:
+
+| Category | Tools |
+|---|---|
+| Recon | nmap, subfinder, rustscan, httpx, ffuf, dirsearch, crt.sh |
+| Vulnerability Assessment | sqlmap, XSStrike, wafw00f, semgrep |
+| Active Directory / Network | bloodhound-python, evil-winrm, impacket |
+| Exploitation | metasploit |
+| Pivoting | chisel, sshuttle, ligolo |
+| Post-Exploitation | pspy64, git-dumper |
+
+### Session Management
+- Every command and output is logged to a timestamped session file
+- `/export` — saves the full session as a plain-text file (paste directly into an LLM for analysis)
+- `/export-json` — saves the session as structured JSON for scripting/reporting
+
+### Automation
+- `/recon-auto [target]` — chains subfinder → httpx → nmap → dirsearch automatically
+- `template` — runs predefined attack templates:
+  - `web-basic` — wafw00f → nmap → httpx → dirsearch
+  - `ctf-web` — crt.sh → subfinder → httpx → ffuf
+  - `ad-recon` — bloodhound → evil-winrm → secretsdump (impacket)
+
+### Python venv Integration
+Dexter automatically creates and activates a `.venv` inside its directory so Python-based tools (sqlmap, XSStrike, bloodhound-python, wafw00f, semgrep, git-dumper) run in isolation without polluting your system Python.
+
+---
+
+## Requirements
+
+- **OS:** Linux (tested on Arch, Kali, Ubuntu)
+- **Shell:** Bash 4+
+- **Core deps:** `git`, `curl`, `jq`, `python3`
+- **Optional:** `go` (for subfinder, ffuf, httpx), `nmap`, `rustscan`, `metasploit`
+
+---
 
 ## Installation
 
-### 🐳 Instalação via Docker (Recomendado)
-
-A forma mais simples e unificada de usar o Dexter Toolkit é através do Docker. Isso elimina a necessidade de instalar dependências manualmente em diferentes sistemas operacionais.
-
-#### Pré-requisitos Docker
-
-- **Docker** instalado e em execução
-- **Docker Compose** (opcional, mas recomendado)
-
-#### Construir e executar
+### Quick Install (recommended)
 
 ```bash
-# Tornar o script de build executável
-chmod +x build-docker.sh
-
-# Construir a imagem Docker
-./build-docker.sh build
-
-# Executar o container (modo interativo)
-./build-docker.sh run
+git clone https://github.com/YOUR_USERNAME/Dexter_Toolkit.git
+cd Dexter_Toolkit
+chmod +x build.sh
+./build.sh
 ```
 
-Ou usando Docker Compose:
+`build.sh` installs the `dexter` command to `~/.local/bin/`. If `shc` is available it compiles to a true binary; otherwise it creates a symlink.
+
+### Make it available system-wide
+
+Add `~/.local/bin` to your PATH by adding this line to your `~/.zshrc` or `~/.bashrc`:
 
 ```bash
-# Construir e iniciar
-docker-compose up --build
-
-# Executar em modo interativo
-docker-compose run --rm dexter
-
-# Parar o container
-docker-compose down
+export PATH="$HOME/.local/bin:$PATH"
 ```
 
-#### Comandos úteis do build-docker.sh
+Then reload your shell:
 
 ```bash
-./build-docker.sh build      # Construir a imagem
-./build-docker.sh run        # Executar interativo
-./build-docker.sh start       # Iniciar em background
-./build-docker.sh stop        # Parar container
-./build-docker.sh shell       # Abrir shell no container
-./build-docker.sh logs        # Ver logs
-./build-docker.sh clean       # Remover tudo
-./build-docker.sh update      # Reconstruir imagem
+source ~/.zshrc   # or source ~/.bashrc
 ```
 
-#### Estrutura de volumes Docker
-
-O Docker monta automaticamente os seguintes diretórios:
-- `./wordlists` → `/opt/dexter/wordlists` (wordlists personalizadas)
-- `./seclists` → `/opt/tools/seclists` (SecLists)
-- `./results` → `/opt/dexter/results` (resultados de scans)
-
-### Instalação nativa (alternativa ao Docker)
-
-Se preferir não usar Docker, você pode instalar as ferramentas manualmente seguindo as instruções de cada repositório oficial. O `dexter.sh` detectará automaticamente quais ferramentas estão disponíveis no sistema.
-
-### Clonando e executando manualmente
+Now you can run Dexter from any terminal:
 
 ```bash
-git clone https://github.com/Kenjibercysec/Dexter_Toolkit.git
+dexter
+```
+
+### Manual (no build step)
+
+```bash
+git clone https://github.com/YOUR_USERNAME/Dexter_Toolkit.git
 cd Dexter_Toolkit
 chmod +x dexter.sh
 ./dexter.sh
 ```
 
-### Manual setup
-
-```bash
-# Clone the repository
-git clone https://github.com/Kenjibercysec/Dexter_Toolkit.git
-
-# Navigate to the toolkit directory
-cd Dexter_Toolkit
-
-# Conceda permissão de execução ao painel principal
-chmod +x dexter.sh
-
-# Rode o painel interativo
-./dexter.sh
-```
-
-## Wordlists Setup
-
-O `dexter.sh` procura wordlists dentro de `seclists/` e `wordlists/`. Caso nenhum arquivo seja encontrado, o usuário pode fornecer o caminho completo manualmente. Os scripts de instalação já clonam o repositório `SecLists`; você também pode:
-
-```bash
-# Clonar SecLists manualmente
-git clone --depth 1 https://github.com/danielmiessler/SecLists.git seclists
-
-# Criar um diretório dedicado para listas próprias
-mkdir -p wordlists
-# Exemplo: adicionar rockyou.txt
-wget -O wordlists/rockyou.txt https://github.com/brannondorsey/naive-hashcat/releases/download/data/rockyou.txt
-```
+---
 
 ## Usage
 
-### Main interface
+```
+dexter
+```
 
-Rode o painel principal para acessar o menu interativo:
+At the prompt, use slash commands to control the session:
+
+```
+/target <domain|IP|URL>   — set the current engagement target
+/target                   — show current target
+
+/note <text>              — add a session note
+/find <text>              — record a finding
+
+/context                  — print full session state (target, notes, findings)
+/history                  — show command history
+
+/recon-auto [target]      — auto-chain: subfinder → httpx → nmap → dirsearch
+template                  — select and run an attack template
+
+/export                   — export session to TXT (ideal for LLM context)
+/export-json              — export session as structured JSON
+
+/help                     — show all available commands
+/exit                     — exit and save session
+```
+
+### Example Workflow
 
 ```bash
-./dexter.sh
+dexter
+# At the prompt:
+/target example.com
+/recon-auto
+/find Open port 8080 — Tomcat admin exposed
+/note Tried default creds, no luck
+/export
 ```
 
-O menu apresenta as opções abaixo. Apenas as que tiverem binários detectados serão executadas; o restante é ignorado com mensagens informativas.
+---
 
-- `1) Run all available modules` — executa sequencialmente todos os módulos disponíveis.
-- `2) Nmap` — presets interativos com suporte a portas extras.
-- `3) Subdomain enumeration (crt.sh)` — consulta direta à API crt.sh com formatação por `jq` quando disponível.
-- `4) Subfinder` — chama `subfinder -d <domínio>`.
-- `5) Dirsearch` — wrapper simples para `dirsearch.py`, permitindo ajustar extensões e threads.
-- `6) FFUF` — executa `ffuf` com seleção de wordlist e filtros de código/tamanho.
-- `7) XSStrike` — detecta a forma de execução (binário, módulo Python ou repositório local) e oferece presets comuns.
-- `8) HTTPX` — sondagem HTTP/HTTPS com detecção de tecnologias, títulos e status codes.
-- `9) RustScan` — scanner de portas ultrarrápido com integração ao Nmap.
-- `10) SQLMap` — detecção e exploração de vulnerabilidades de injeção SQL.
-- `11) BloodHound` — coleta dados do Active Directory para análise.
-- `12) Evil-WinRM` — shell interativo WinRM para acesso remoto Windows.
-- `13) Impacket` — ferramentas para protocolos de rede (SMB, Kerberos, etc).
-- `14) Show banner` — redesenha o cabeçalho neon.
-- `15) Clear screen` — limpa o terminal e mostra o banner novamente.
-- `0) Exit` — encerra o painel.
+## Installing Tools
 
-**Observação:** todo output é exibido ao vivo no terminal; nenhum arquivo é salvo por padrão. Utilize redirecionamento manual (`tee`, `>` etc.) caso deseje persistir resultados.
+Dexter works with whatever tools you already have. Install the ones you need:
 
-## Project structure
+```bash
+# Kali / Debian
+sudo apt install nmap ffuf httpx-toolkit rustscan sqlmap bloodhound python3-impacket
 
-```
-Dexter_Toolkit/
-├── dexter.sh             # Painel interativo principal
-├── Dockerfile            # Imagem Docker unificada
-├── docker-compose.yml    # Configuração Docker Compose
-├── docker-entrypoint.sh  # Script de entrada do container
-├── build-docker.sh       # Script de gerenciamento Docker
-├── ADDING_TOOLS.md       # Guia para adicionar novas ferramentas
-├── dirsearch/            # Clonado pelo Dockerfile (opcional)
-├── XSStrike/             # Clonado pelo Dockerfile (opcional)
-├── sqlmap/               # Clonado pelo Dockerfile (opcional)
-├── impacket/             # Clonado pelo Dockerfile (opcional)
-├── seclists/             # Coleção de wordlists (opcional, mas recomendado)
-├── wordlists/            # Wordlists personalizadas (opcional)
-└── README.md
+# Go tools
+go install github.com/projectdiscovery/subfinder/v2/cmd/subfinder@latest
+go install github.com/projectdiscovery/httpx/cmd/httpx@latest
+go install github.com/ffuf/ffuf/v2@latest
+
+# Python tools (inside venv — Dexter handles this automatically)
+pip install sqlmap xsstrike wafw00f semgrep bloodhound git-dumper
+
+# Arch Linux
+sudo pacman -S nmap python
+yay -S rustscan sqlmap
 ```
 
-## Ferramentas incluídas
+Tools can also be placed inside a `tools/` directory alongside `dexter.sh` and symlinked into `bin/` — Dexter will detect them automatically.
 
-O Dexter Toolkit inclui as seguintes ferramentas de segurança:
-Lembrando que eventualmente todas as ferramentas serão marcadas aqui.
+---
 
-| Ferramenta | Tipo | Descrição |
-|------------|------|-----------|
-| **nmap** | Binário | Scanner de portas e serviços |
-| **subfinder** | Go | Enumeração de subdomínios |
-| **ffuf** | Go | Web fuzzer rápido |
-| **httpx** | Go | Sondagem HTTP/HTTPS |
-| **rustscan** | Rust | Scanner de portas ultrarrápido |
-| **dirsearch** | Python | Scanner de diretórios web |
-| **XSStrike** | Python | Detector de vulnerabilidades XSS |
-| **sqlmap** | Python | Exploração de injeção SQL |
-| **bloodhound-ce** | Python | Coletor de dados do Active Directory |
-| **evil-winrm** | Ruby/Python | Shell interativo WinRM |
-| **impacket** | Python | Ferramentas para protocolos de rede |
-| **curl/jq** | Binários | Utilitários para APIs e parsing JSON |
+## Session Files
 
-## Contributing
+By default, session logs are written to a `results/` directory next to the script. These files are **excluded from version control** via `.gitignore` and should be treated as sensitive — they may contain target names, scan outputs, and findings.
 
-Contributions, issue reports and feature requests are welcome. Please open an issue or submit a pull request on the repository.
+---
 
 ## License
 
-This project is licensed under the **MIT License**. See the `LICENSE` file for details.
+MIT — free to use, modify, and distribute. See [LICENSE](LICENSE) for details.
 
-## Contact
+---
 
-For questions or collaboration, open an issue on the repository or contact the maintainer via the GitHub profile.
-
-
-
-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+> **Disclaimer:** This tool is intended for authorized security testing only. Always obtain proper written permission before testing any system you do not own. The authors assume no liability for misuse.

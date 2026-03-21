@@ -1,23 +1,19 @@
 #
 # Dexter Toolkit - .gitignore
-# Mantém apenas os arquivos essenciais do projeto no controle de versão.
+# Only essential project files are tracked.
 #
 
-# Ignora tudo por padrão
+# Ignore everything by default
 *
 
-# Excetua os arquivos essenciais
-# Permite arquivos essenciais
+# Allow essential files
 !.gitignore
 !README.md
 !dexter.sh
-!build-docker.sh
-!docker-compose.yml
-!docker-entrypoint.sh
-!Dockerfile
-!ADDING_TOOLS.md
-!pleasework.txt
+!build.sh
 
-# Ignora o venv (criado automaticamente)
+# Ignore generated artifacts
 .venv/
+results/
+*.log
 
