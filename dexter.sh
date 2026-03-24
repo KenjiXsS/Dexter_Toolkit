@@ -95,6 +95,8 @@ detect_semgrep()    { command_exists semgrep || [[ -f "$VENV_DIR/bin/semgrep" ]]
 detect_wafw00f()    { command_exists wafw00f || [[ -f "$VENV_DIR/bin/wafw00f" ]] || [[ -f "$SCRIPT_DIR/bin/wafw00f" ]]; }
 detect_pspy()       { command_exists pspy64 || [[ -f "$SCRIPT_DIR/bin/pspy64" ]] || [[ -f "$SCRIPT_DIR/tools/pspy64" ]]; }
 detect_gitdumper()  { command_exists git-dumper || [[ -f "$VENV_DIR/bin/git-dumper" ]] || [[ -f "$SCRIPT_DIR/bin/git-dumper" ]]; }
+detect_wpscan()     { command_exists wpscan; }
+detect_cewl()       { command_exists cewl; }
 detect_nmap()       { command_exists nmap; }
 detect_curl()       { command_exists curl; }
 detect_jq()         { command_exists jq; }
@@ -253,7 +255,7 @@ BANNER
 
 # ─── Tools Menu ──────────────────────────────────────────────────────────────
 show_tools_menu() {
-  local nm sf rs hx ff ds sq xs wf sg bh ew im ms ch ss lg py gd
+  local nm sf rs hx ff ds sq xs wf sg wp cw bh ew im ms ch ss lg py gd
 
   detect_nmap       && nm="${C_BGRN}✔${C_RST}" || nm="${C_DIM}${C_RED}✘${C_RST}"
   detect_subfinder  && sf="${C_BGRN}✔${C_RST}" || sf="${C_DIM}${C_RED}✘${C_RST}"
@@ -265,6 +267,8 @@ show_tools_menu() {
   detect_xsstrike   && xs="${C_BGRN}✔${C_RST}" || xs="${C_DIM}${C_RED}✘${C_RST}"
   detect_wafw00f    && wf="${C_BGRN}✔${C_RST}" || wf="${C_DIM}${C_RED}✘${C_RST}"
   detect_semgrep    && sg="${C_BGRN}✔${C_RST}" || sg="${C_DIM}${C_RED}✘${C_RST}"
+  detect_wpscan     && wp="${C_BGRN}✔${C_RST}" || wp="${C_DIM}${C_RED}✘${C_RST}"
+  detect_cewl       && cw="${C_BGRN}✔${C_RST}" || cw="${C_DIM}${C_RED}✘${C_RST}"
   detect_bloodhound && bh="${C_BGRN}✔${C_RST}" || bh="${C_DIM}${C_RED}✘${C_RST}"
   detect_evilwinrm  && ew="${C_BGRN}✔${C_RST}" || ew="${C_DIM}${C_RED}✘${C_RST}"
   detect_impacket   && im="${C_BGRN}✔${C_RST}" || im="${C_DIM}${C_RED}✘${C_RST}"
@@ -280,6 +284,7 @@ show_tools_menu() {
   printf '  %b ffuf       %b dirsearch   %b crtsh\n'                  "$ff" "$ds" "${C_BGRN}✔${C_RST}"
   printf '%b╠══ VULNERABILITIES ════════════════════════════════╣%b\n' "${C_DIM}${C_CYN}" "${C_RST}"
   printf '  %b sqlmap     %b xsstrike    %b wafw00f     %b semgrep\n' "$sq" "$xs" "$wf" "$sg"
+  printf '  %b wpscan     %b cewl\n'                                "$wp" "$cw"
   printf '%b╠══ AD / NETWORK ═══════════════════════════════════╣%b\n' "${C_DIM}${C_CYN}" "${C_RST}"
   printf '  %b bloodhound %b evil-winrm  %b impacket    %b metasploit\n' "$bh" "$ew" "$im" "$ms"
   printf '%b╠══ PIVOTING ════════════════════════════════════════╣%b\n' "${C_DIM}${C_CYN}" "${C_RST}"
@@ -310,7 +315,7 @@ show_help() {
   printf '    /export-json      — save session as structured JSON\n'
   printf '\n%b  Tools (just type the name):%b\n' "${C_BCYN}" "${C_RST}"
   printf '    nmap  crtsh  subfinder  dirsearch  ffuf  httpx  rustscan\n'
-  printf '    sqlmap  xsstrike  wafw00f  semgrep\n'
+  printf '    sqlmap  xsstrike  wafw00f  semgrep  wpscan  cewl\n'
   printf '    bloodhound  evil-winrm  impacket  metasploit\n'
   printf '    chisel  sshuttle  ligolo  pspy  git-dumper\n'
   printf '\n%b  Other:%b\n' "${C_BCYN}" "${C_RST}"
@@ -870,6 +875,78 @@ run_wafw00f() {
   log_output "wafw00f $url" "$(tail -30 "$_tmp")"
   rm -f "$_tmp"
   printf '\n%b[✔] wafw00f finished%b\n' "${C_BGRN}" "${C_RST}"
+}
+
+# ─── Tool: wpscan ────────────────────────────────────────────────────────────
+run_wpscan() {
+  if ! detect_wpscan; then printf '%b[✘] wpscan not installed (gem install wpscan)%b\n' "${C_RED}" "${C_RST}"; return; fi
+
+  show_example "wpscan --url http://192.168.1.100 --enumerate u,vp,vt"
+  show_example "wpscan --url https://target.com --enumerate ap --plugins-detection aggressive"
+
+  read -r -p "  Target URL: " url
+  [[ -z "$url" ]] && { echo "  Cancelled."; return; }
+
+  printf '  Enumerate: %b1%b) users+vulns (default)  %b2%b) all plugins  %b3%b) custom\n' \
+    "${C_CYN}" "${C_RST}" "${C_CYN}" "${C_RST}" "${C_CYN}" "${C_RST}"
+  read -r -p "  Choice [1]: " m; m="${m:-1}"
+
+  local flags=""
+  case $m in
+    1) flags="--enumerate u,vp,vt" ;;
+    2) flags="--enumerate ap --plugins-detection aggressive" ;;
+    3)
+      read -r -p "  Extra flags: " flags
+      flags="$(sanitize_flags "$flags")"
+      ;;
+    *) flags="--enumerate u,vp,vt" ;;
+  esac
+
+  local api_token=""
+  read -r -p "  WPScan API token (optional, Enter to skip): " api_token
+  [[ -n "$api_token" ]] && flags="$flags --api-token $api_token"
+
+  local cmd="wpscan --url $url $flags"
+  log_command "$cmd"
+  run_header "wpscan" "$cmd"
+
+  local _tmp; _tmp=$(mktemp)
+  # shellcheck disable=SC2086
+  wpscan --url "$url" $flags 2>&1 | tee "$_tmp"
+  log_output "wpscan $url" "$(tail -40 "$_tmp")"
+  rm -f "$_tmp"
+  printf '\n%b[✔] wpscan finished%b\n' "${C_BGRN}" "${C_RST}"
+}
+
+# ─── Tool: cewl ──────────────────────────────────────────────────────────────
+run_cewl() {
+  if ! detect_cewl; then printf '%b[✘] cewl not installed (gem install cewl)%b\n' "${C_RED}" "${C_RST}"; return; fi
+
+  show_example "cewl http://target.com -d 2 -m 5 -w wordlist.txt"
+  show_example "cewl https://target.com -d 3 -m 4 --email -w words.txt"
+
+  read -r -p "  Target URL: " url
+  [[ -z "$url" ]] && { echo "  Cancelled."; return; }
+
+  read -r -p "  Depth [-d 2]: " depth; depth="${depth:-2}"
+  read -r -p "  Min word length [-m 5]: " minlen; minlen="${minlen:-5}"
+
+  local outfile="$SESSION_DIR/cewl_$(sanitize_for_dir "$url")_$(date '+%H%M%S').txt"
+  read -r -p "  Output file [$outfile]: " custom_out
+  [[ -n "$custom_out" ]] && outfile="$custom_out"
+
+  local cmd="cewl $url -d $depth -m $minlen -w $outfile"
+  log_command "$cmd"
+  run_header "cewl" "$cmd"
+
+  cewl "$url" -d "$depth" -m "$minlen" -w "$outfile" 2>&1
+  if [[ -f "$outfile" ]]; then
+    local count; count=$(wc -l < "$outfile")
+    printf '\n%b[✔] cewl finished — %s words → %s%b\n' "${C_BGRN}" "$count" "$outfile" "${C_RST}"
+    log_output "cewl $url" "$count words saved to $outfile"
+  else
+    printf '\n%b[✔] cewl finished%b\n' "${C_BGRN}" "${C_RST}"
+  fi
 }
 
 # ─── Tool: semgrep ───────────────────────────────────────────────────────────
@@ -1683,6 +1760,8 @@ main() {
         chisel)        run_chisel ;;
         semgrep)       run_semgrep ;;
         wafw00f)       run_wafw00f ;;
+        wpscan)        run_wpscan ;;
+        cewl)          run_cewl ;;
         pspy)          run_pspy ;;
         git-dumper|gitdumper) run_gitdumper ;;
 
