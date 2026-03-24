@@ -98,7 +98,7 @@ dexter
 ### Manual (no build step)
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/Dexter_Toolkit.git
+git clone https://github.com/KenjiXsS_/Dexter_Toolkit.git
 cd Dexter_Toolkit
 chmod +x dexter.sh
 ./dexter.sh
