@@ -1227,7 +1227,7 @@ function Invoke-TplAdRecon([string]$tgt) {
         Show-Section "secretsdump"
         $sdPath = Join-Path $SCRIPT_DIR "tools\impacket\examples\secretsdump.py"
         if (Test-Path $sdPath) {
-            Invoke-WithCapture -Tool $script:PythonCmd -TArgs @($sdPath, "$domain/$user:$pass@$tgt") -Label "secretsdump $tgt"
+            Invoke-WithCapture -Tool $script:PythonCmd -TArgs @($sdPath, "${domain}/${user}:${pass}@${tgt}") -Label "secretsdump $tgt"
         }
     }
     if (Test-Evilwinrm) {
