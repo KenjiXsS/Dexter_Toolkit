@@ -92,39 +92,25 @@ if (-not $SkipBinaries) {
     Write-Host ""
     Write-Step "Downloading Windows binaries..."
 
-    # nmap (installer requires admin -- triggers UAC automatically)
+    # nmap -- installed via winget (handles UAC automatically)
     if (Test-Cmd 'nmap') {
         Write-OK "nmap found in PATH"
     } else {
         $nmapDefault = "C:\Program Files (x86)\Nmap\nmap.exe"
         if (Test-Path $nmapDefault) {
-            Write-OK "nmap found at Program Files -- adding to PATH"
+            Write-OK "nmap found -- adding to PATH"
             $env:PATH = "C:\Program Files (x86)\Nmap;$env:PATH"
-        } else {
-            Write-Step "nmap not found -- fetching installer..."
-            try {
-                $page  = Invoke-WebRequest "https://nmap.org/dist/" -UseBasicParsing -ErrorAction Stop
-                $link  = ($page.Links | Where-Object { $_.href -match "nmap-[\d.]+-setup\.exe" } | Select-Object -Last 1).href
-                if ($link) {
-                    $nmapUrl       = "https://nmap.org/dist/$link"
-                    $nmapInstaller = Join-Path $env:TEMP $link
-                    Write-Step "Downloading $link..."
-                    Download-File $nmapUrl $nmapInstaller
-                    Write-Step "Launching nmap installer -- a UAC prompt will appear..."
-                    Start-Process $nmapInstaller -ArgumentList "/S" -Verb RunAs -Wait
-                    if (Test-Path $nmapDefault) {
-                        $env:PATH = "C:\Program Files (x86)\Nmap;$env:PATH"
-                        Write-OK "nmap installed"
-                    } else {
-                        Write-Warn "nmap installer ran but binary not found -- may need a new terminal"
-                    }
-                    Remove-Item $nmapInstaller -Force -ErrorAction SilentlyContinue
-                } else {
-                    Write-Warn "Could not find nmap installer link -- visit https://nmap.org/download.html"
-                }
-            } catch {
-                Write-Warn "Failed to fetch nmap installer: $_"
+        } elseif (Test-Cmd 'winget') {
+            Write-Step "Installing nmap via winget (UAC prompt may appear)..."
+            winget install --id nmap.nmap --silent --accept-package-agreements --accept-source-agreements
+            if (Test-Path $nmapDefault) {
+                $env:PATH = "C:\Program Files (x86)\Nmap;$env:PATH"
+                Write-OK "nmap installed"
+            } else {
+                Write-Warn "nmap installed -- restart terminal to use it"
             }
+        } else {
+            Write-Warn "winget not found -- install nmap manually: https://nmap.org/download.html"
         }
     }
 
