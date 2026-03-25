@@ -92,6 +92,42 @@ if (-not $SkipBinaries) {
     Write-Host ""
     Write-Step "Downloading Windows binaries..."
 
+    # nmap (installer requires admin -- triggers UAC automatically)
+    if (Test-Cmd 'nmap') {
+        Write-OK "nmap found in PATH"
+    } else {
+        $nmapDefault = "C:\Program Files (x86)\Nmap\nmap.exe"
+        if (Test-Path $nmapDefault) {
+            Write-OK "nmap found at Program Files -- adding to PATH"
+            $env:PATH = "C:\Program Files (x86)\Nmap;$env:PATH"
+        } else {
+            Write-Step "nmap not found -- fetching installer..."
+            try {
+                $page  = Invoke-WebRequest "https://nmap.org/dist/" -UseBasicParsing -ErrorAction Stop
+                $link  = ($page.Links | Where-Object { $_.href -match "nmap-[\d.]+-setup\.exe" } | Select-Object -Last 1).href
+                if ($link) {
+                    $nmapUrl       = "https://nmap.org/dist/$link"
+                    $nmapInstaller = Join-Path $env:TEMP $link
+                    Write-Step "Downloading $link..."
+                    Download-File $nmapUrl $nmapInstaller
+                    Write-Step "Launching nmap installer -- a UAC prompt will appear..."
+                    Start-Process $nmapInstaller -ArgumentList "/S" -Verb RunAs -Wait
+                    if (Test-Path $nmapDefault) {
+                        $env:PATH = "C:\Program Files (x86)\Nmap;$env:PATH"
+                        Write-OK "nmap installed"
+                    } else {
+                        Write-Warn "nmap installer ran but binary not found -- may need a new terminal"
+                    }
+                    Remove-Item $nmapInstaller -Force -ErrorAction SilentlyContinue
+                } else {
+                    Write-Warn "Could not find nmap installer link -- visit https://nmap.org/download.html"
+                }
+            } catch {
+                Write-Warn "Failed to fetch nmap installer: $_"
+            }
+        }
+    }
+
     # rustscan
     $rustscanDest = Join-Path $BinDir "rustscan.exe"
     if (Test-Path $rustscanDest) {
@@ -122,11 +158,12 @@ if (-not $SkipBinaries) {
         $asset = Get-GithubLatestAsset "jpillora/chisel" "windows_amd64"
         if ($asset) {
             try {
-                $tmp = [IO.Path]::GetTempFileName() + "_chisel_dl"
-                Write-Step "Downloading $($asset.name)..."
+                $assetName = $asset.name
+                $ext = if ($assetName -like "*.zip") { ".zip" } else { ".gz" }
+                $tmp = [IO.Path]::GetTempFileName() + $ext
+                Write-Step "Downloading $assetName..."
                 Download-File $asset.browser_download_url $tmp
 
-                $assetName = $asset.name
                 if ($assetName -like "*.gz") {
                     $bytes = [IO.File]::ReadAllBytes($tmp)
                     $ms  = New-Object IO.MemoryStream (,$bytes)
@@ -161,16 +198,36 @@ if ($hasPython) {
     $VenvDir   = Join-Path $SCRIPT_DIR ".venv"
     if (-not (Test-Path $VenvDir)) {
         & python -m venv $VenvDir 2>&1 | Out-Null
-        Write-OK "venv created at .venv\"
+        if (Test-Path $VenvDir) { Write-OK "venv created at .venv\" }
+        else { Write-Warn "venv creation failed -- skipping Python setup"; return }
     } else {
         Write-OK "venv already exists"
     }
 
-    $PipCmd    = Join-Path $VenvDir "Scripts\pip.exe"
     $PythonExe = Join-Path $VenvDir "Scripts\python.exe"
+    $PipCmd    = Join-Path $VenvDir "Scripts\pip.exe"
 
-    Write-Step "Upgrading pip..."
-    & $PythonExe -m pip install --upgrade pip --quiet 2>&1 | Out-Null
+    # Ensure pip is available inside the venv (some Windows installs omit it)
+    if (-not (Test-Path $PythonExe)) {
+        Write-Warn "venv python.exe not found -- trying python3"
+        $PythonExe = Join-Path $VenvDir "Scripts\python3.exe"
+    }
+    if (-not (Test-Path $PipCmd)) {
+        Write-Step "pip not found in venv -- bootstrapping with ensurepip..."
+        & $PythonExe -m ensurepip --upgrade 2>&1 | Out-Null
+        & $PythonExe -m pip install --upgrade pip --quiet 2>&1 | Out-Null
+        if (-not (Test-Path $PipCmd)) {
+            Write-Warn "Could not bootstrap pip -- Python packages will be skipped"
+            $hasPython = $false
+        }
+    }
+
+    if ($hasPython) {
+        Write-Step "Upgrading pip..."
+        & $PythonExe -m pip install --upgrade pip --quiet 2>&1 | Out-Null
+    }
+
+    if (-not $hasPython) { return }
 
     Write-Step "Installing Python packages (wafw00f, semgrep, git-dumper, bloodhound)..."
     & $PipCmd install wafw00f semgrep git-dumper bloodhound --quiet 2>&1 | Out-Null
