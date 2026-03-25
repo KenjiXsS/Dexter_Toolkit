@@ -1,4 +1,4 @@
-#Requires -Version 5.1
+﻿#Requires -Version 5.1
 # ╔══════════════════════════════════════════════════════════════╗
 # ║              DEXTER TOOLKIT  ·  Interactive Shell            ║
 # ║              Pentest automation framework v3.0  [Windows]    ║
@@ -81,9 +81,10 @@ function Test-Ffuf      { (Test-Cmd 'ffuf')      -or (Test-Path (Join-Path $GoBi
 function Test-Httpx     { (Test-Cmd 'httpx')     -or (Test-Path (Join-Path $GoBin "httpx.exe")) }
 function Test-Rustscan  { (Test-Cmd 'rustscan') }
 function Test-Sqlmap    { (Test-Path (Join-Path $SCRIPT_DIR "tools\sqlmap\sqlmap.py")) -or (Test-Cmd 'sqlmap') }
-function Test-Bloodhound{ (Test-Cmd 'bloodhound-python') -or (& python -c "import bloodhound" 2>$null; $LASTEXITCODE -eq 0) }
+function Test-PythonMod([string]$m) { python -c "import $m" 2>&1 | Out-Null; return $LASTEXITCODE -eq 0 }
+function Test-Bloodhound{ (Test-Cmd 'bloodhound-python') -or (Test-PythonMod 'bloodhound') }
 function Test-Evilwinrm { (Test-Cmd 'evil-winrm') -or (Test-Cmd 'evil_winrm') }
-function Test-Impacket  { (Test-Path (Join-Path $SCRIPT_DIR "tools\impacket\examples\secretsdump.py")) -or (& python -c "import impacket" 2>$null; $LASTEXITCODE -eq 0) }
+function Test-Impacket  { (Test-Path (Join-Path $SCRIPT_DIR "tools\impacket\examples\secretsdump.py")) -or (Test-PythonMod 'impacket') }
 function Test-Metasploit{ (Test-Cmd 'msfconsole') -or (Test-Path "C:\metasploit-framework\bin\msfconsole.bat") }
 function Test-Ligolo    { (Test-Cmd 'ligolo') -or (Test-Path (Join-Path $SCRIPT_DIR "bin\ligolo.exe")) -or (Test-Path (Join-Path $GoBin "ligolo.exe")) }
 function Test-Chisel    { (Test-Cmd 'chisel') -or (Test-Path (Join-Path $SCRIPT_DIR "bin\chisel.exe")) -or (Test-Path (Join-Path $GoBin "chisel.exe")) }
