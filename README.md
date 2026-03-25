@@ -55,19 +55,24 @@ Dexter automatically creates and activates a `.venv` inside its directory so Pyt
 
 ## Requirements
 
-- **OS:** Linux (tested on Arch, Kali, Ubuntu)
+### Linux / macOS
 - **Shell:** Bash 4+
 - **Core deps:** `git`, `curl`, `jq`, `python3`
 - **Optional:** `go` (for subfinder, ffuf, httpx), `nmap`, `rustscan`, `metasploit`
+
+### Windows
+- **PowerShell:** 5.1+ (built into Windows 10/11)
+- **Required:** `git` ([git-scm.com](https://git-scm.com)), `python3` ([python.org](https://python.org))
+- **Optional:** `go` ([go.dev](https://go.dev)) for subfinder, ffuf, httpx; `nmap` ([nmap.org](https://nmap.org))
 
 ---
 
 ## Installation
 
-### Quick Install (recommended)
+### Linux / macOS — Quick Install
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/Dexter_Toolkit.git
+git clone https://github.com/KenjiXsS_/Dexter_Toolkit.git
 cd Dexter_Toolkit
 chmod +x build.sh
 ./build.sh
@@ -75,33 +80,65 @@ chmod +x build.sh
 
 `build.sh` installs the `dexter` command to `~/.local/bin/`. If `shc` is available it compiles to a true binary; otherwise it creates a symlink.
 
-### Make it available system-wide
-
-Add `~/.local/bin` to your PATH by adding this line to your `~/.zshrc` or `~/.bashrc`:
+Add `~/.local/bin` to your PATH if needed:
 
 ```bash
-export PATH="$HOME/.local/bin:$PATH"
+export PATH="$HOME/.local/bin:$PATH"   # add to ~/.zshrc or ~/.bashrc
+source ~/.zshrc
 ```
 
-Then reload your shell:
-
-```bash
-source ~/.zshrc   # or source ~/.bashrc
-```
-
-Now you can run Dexter from any terminal:
-
-```bash
-dexter
-```
-
-### Manual (no build step)
+### Linux / macOS — Manual (no build step)
 
 ```bash
 git clone https://github.com/KenjiXsS_/Dexter_Toolkit.git
 cd Dexter_Toolkit
 chmod +x dexter.sh
 ./dexter.sh
+```
+
+---
+
+### Windows — Quick Setup
+
+Open **PowerShell** (or Windows Terminal) and run:
+
+```powershell
+git clone https://github.com/KenjiXsS_/Dexter_Toolkit.git
+cd Dexter_Toolkit
+.\build.ps1
+```
+
+`build.ps1` will automatically:
+- Clone the tool repositories (`sqlmap`, `XSStrike`, `dirsearch`, `impacket`) into `tools\`
+- Download Windows binaries (`rustscan.exe`, `chisel.exe`) into `bin\`
+- Create a Python virtual environment in `.venv\` and install all Python packages
+- Install Go tools (`subfinder`, `httpx`, `ffuf`) if Go is available
+- Create a `dexter.bat` launcher for easy access
+
+> If you get an execution policy error, run this first:
+> ```powershell
+> Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+> ```
+
+### Windows — Running Dexter
+
+From the toolkit directory:
+
+```powershell
+.\dexter.bat      # works in PowerShell, cmd.exe, and Windows Terminal
+.\dexter.ps1      # PowerShell directly
+```
+
+To run `dexter` from anywhere, add the toolkit directory to your user PATH:
+
+```powershell
+[Environment]::SetEnvironmentVariable('PATH', "$env:PATH;$PWD", 'User')
+```
+
+Then restart your terminal and run:
+
+```
+dexter
 ```
 
 ---
@@ -150,26 +187,25 @@ dexter
 
 ## Installing Tools
 
-Dexter works with whatever tools you already have. Install the ones you need:
+`build.ps1` (Windows) and `build.sh` (Linux/macOS) handle the heavy lifting automatically. For tools not covered by the build scripts:
 
 ```bash
 # Kali / Debian
 sudo apt install nmap ffuf httpx-toolkit rustscan sqlmap bloodhound python3-impacket
 
-# Go tools
+# Go tools (any platform with Go installed)
 go install github.com/projectdiscovery/subfinder/v2/cmd/subfinder@latest
 go install github.com/projectdiscovery/httpx/cmd/httpx@latest
 go install github.com/ffuf/ffuf/v2@latest
-
-# Python tools (inside venv — Dexter handles this automatically)
-pip install sqlmap xsstrike wafw00f semgrep bloodhound git-dumper
 
 # Arch Linux
 sudo pacman -S nmap python
 yay -S rustscan sqlmap
 ```
 
-Tools can also be placed inside a `tools/` directory alongside `dexter.sh` and symlinked into `bin/` — Dexter will detect them automatically.
+On **Windows**, `build.ps1` installs Python tools, clones git-based tools, and downloads binaries automatically. Additional tools like `nmap` can be installed from [nmap.org](https://nmap.org/download.html) and placed in PATH.
+
+Tools placed inside `tools/` alongside the script are detected automatically.
 
 ---
 
