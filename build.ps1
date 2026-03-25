@@ -256,5 +256,6 @@ Write-Host "    ${C}.\dexter.bat${RST}   ${D}(from this directory — works in c
 Write-Host "    ${C}.\dexter.ps1${RST}   ${D}(directly in PowerShell)${RST}"
 Write-Host ""
 Write-Host "${D}  To run from anywhere, add the toolkit directory to your PATH:${RST}"
-Write-Host "  ${Y}[Environment]::SetEnvironmentVariable('PATH', `"`$env:PATH;$SCRIPT_DIR`", 'User')${RST}"
+$_pathCmd = "[Environment]::SetEnvironmentVariable('PATH', `$env:PATH + ';$SCRIPT_DIR', 'User')"
+Write-Host "  ${Y}$_pathCmd${RST}"
 Write-Host ""
