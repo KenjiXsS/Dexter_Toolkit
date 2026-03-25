@@ -11,7 +11,7 @@
 !README.md
 !dexter.sh
 !build.sh
-
+!dexter.ps1
 # Ignore generated artifacts
 .venv/
 results/
