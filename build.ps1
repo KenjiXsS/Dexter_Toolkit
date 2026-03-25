@@ -1,8 +1,8 @@
 #Requires -Version 5.1
-# ============================================================
+# ==============================================================
 #  DEXTER TOOLKIT -- Build & Setup  [Windows]
 #  Clones tools, creates venv, downloads binaries
-# ============================================================
+# ==============================================================
 
 param(
     [switch]$SkipGoTools,
@@ -23,17 +23,10 @@ function Write-OK([string]$msg)   { Write-Host ($G + "[+] " + $RST + $msg) }
 function Write-Warn([string]$msg) { Write-Host ($Y + "[!] " + $RST + $msg) }
 function Write-Fail([string]$msg) { Write-Host ($R + "[x] " + $RST + $msg) }
 
-Write-Host ($C + "
-  ██████╗ ███████╗██╗  ██╗████████╗███████╗██████╗
-  ██╔══██╗██╔════╝╚██╗██╔╝╚══██╔══╝██╔════╝██╔══██╗
-  ██║  ██║█████╗   ╚███╔╝    ██║   █████╗  ██████╔╝
-  ██║  ██║██╔══╝   ██╔██╗    ██║   ██╔══╝  ██╔══██╗
-  ██████╔╝███████╗██╔╝ ██╗   ██║   ███████╗██║  ██║
-  ╚═════╝ ╚══════╝╚═╝  ╚═╝   ╚═╝   ╚══════╝╚═╝  ╚═╝
-" + $RST)
-Write-Host ($D + "  Build & Setup Script (Windows)" + $RST + "`n")
+Write-Host ($C + "  DEXTER TOOLKIT  --  Build & Setup (Windows)" + $RST)
+Write-Host ($D + "  Tonight is the night." + $RST + "`n")
 
-# ── Helpers ──────────────────────────────────────────────────
+# -- Helpers ---------------------------------------------------
 function Test-Cmd([string]$Name) {
     return $null -ne (Get-Command $Name -ErrorAction SilentlyContinue)
 }
@@ -63,7 +56,7 @@ function Download-File([string]$Url, [string]$Dest) {
     Invoke-WebRequest -Uri $Url -OutFile $Dest -UseBasicParsing -ErrorAction Stop
 }
 
-# ── Prerequisites ─────────────────────────────────────────────
+# -- Prerequisites ---------------------------------------------
 Write-Step "Checking prerequisites..."
 
 $hasPython = Test-Cmd 'python'
@@ -79,13 +72,13 @@ else                  { Write-OK  "python found" }
 if (-not $hasGo)      { Write-Warn "go not found -- Go tools will be skipped (optional)" }
 else                  { Write-OK  "go found" }
 
-# ── Directories ───────────────────────────────────────────────
+# -- Directories -----------------------------------------------
 $ToolsDir = Join-Path $SCRIPT_DIR "tools"
 $BinDir   = Join-Path $SCRIPT_DIR "bin"
 New-Item -ItemType Directory -Path $ToolsDir -Force | Out-Null
 New-Item -ItemType Directory -Path $BinDir   -Force | Out-Null
 
-# ── Clone tool repositories ───────────────────────────────────
+# -- Clone tool repositories -----------------------------------
 Write-Host ""
 Write-Step "Setting up tool repositories..."
 
@@ -94,7 +87,7 @@ Invoke-GitClone "https://github.com/s0md3v/XSStrike.git"      (Join-Path $ToolsD
 Invoke-GitClone "https://github.com/maurosoria/dirsearch.git" (Join-Path $ToolsDir "dirsearch") "dirsearch"
 Invoke-GitClone "https://github.com/fortra/impacket.git"      (Join-Path $ToolsDir "impacket")  "impacket"
 
-# ── Download binaries ─────────────────────────────────────────
+# -- Download binaries -----------------------------------------
 if (-not $SkipBinaries) {
     Write-Host ""
     Write-Step "Downloading Windows binaries..."
@@ -105,8 +98,8 @@ if (-not $SkipBinaries) {
         Write-OK "rustscan.exe already present"
     } else {
         Write-Step "Fetching latest rustscan release..."
-        $asset = Get-GithubLatestAsset "RustScan/RustScan" "windows.*x86_64.*\.exe$"
-        if (-not $asset) { $asset = Get-GithubLatestAsset "RustScan/RustScan" "\.exe$" }
+        $asset = Get-GithubLatestAsset "RustScan/RustScan" "windows.*x86_64.*\.exe"
+        if (-not $asset) { $asset = Get-GithubLatestAsset "RustScan/RustScan" "\.exe" }
         if ($asset) {
             try {
                 Write-Step "Downloading $($asset.name)..."
@@ -116,7 +109,7 @@ if (-not $SkipBinaries) {
                 Write-Warn "Failed to download rustscan: $_"
             }
         } else {
-            Write-Warn "No Windows rustscan binary found -- install manually from github.com/RustScan/RustScan/releases"
+            Write-Warn "No Windows rustscan binary found -- get it from github.com/RustScan/RustScan/releases"
         }
     }
 
@@ -129,7 +122,7 @@ if (-not $SkipBinaries) {
         $asset = Get-GithubLatestAsset "jpillora/chisel" "windows_amd64"
         if ($asset) {
             try {
-                $tmp = [IO.Path]::GetTempFileName() + "_" + $asset.name
+                $tmp = [IO.Path]::GetTempFileName() + "_chisel_dl"
                 Write-Step "Downloading $($asset.name)..."
                 Download-File $asset.browser_download_url $tmp
 
@@ -155,12 +148,12 @@ if (-not $SkipBinaries) {
                 Write-Warn "Failed to extract chisel: $_"
             }
         } else {
-            Write-Warn "chisel not found in releases -- install manually if needed"
+            Write-Warn "chisel not found -- install manually if needed"
         }
     }
 }
 
-# ── Python virtual environment ────────────────────────────────
+# -- Python virtual environment --------------------------------
 if ($hasPython) {
     Write-Host ""
     Write-Step "Setting up Python virtual environment..."
@@ -203,7 +196,7 @@ if ($hasPython) {
     }
 }
 
-# ── Go tools ──────────────────────────────────────────────────
+# -- Go tools --------------------------------------------------
 if ($hasGo -and -not $SkipGoTools) {
     Write-Host ""
     Write-Step "Installing Go tools..."
@@ -222,7 +215,7 @@ if ($hasGo -and -not $SkipGoTools) {
     }
 }
 
-# ── Launcher (.bat) ───────────────────────────────────────────
+# -- Launcher (.bat) -------------------------------------------
 Write-Host ""
 Write-Step "Creating dexter.bat launcher..."
 $batContent = "@echo off`r`npowershell.exe -NoLogo -ExecutionPolicy Bypass -File `"%~dp0dexter.ps1`" %*`r`n"
@@ -232,23 +225,23 @@ Write-OK "dexter.bat created"
 
 $env:PATH = "$BinDir;$env:PATH"
 
-# ── Summary ───────────────────────────────────────────────────
+# -- Summary ---------------------------------------------------
 Write-Host ""
-Write-Host ($D + "# ======================================================" + $RST)
-Write-Host ("  Setup complete!")
+Write-Host ($D + "# =====================================================" + $RST)
+Write-Host "  Setup complete!"
 Write-Host ("  Tools dir : " + $G + $ToolsDir + $RST)
 Write-Host ("  Bin dir   : " + $G + $BinDir + $RST)
 if ($hasPython) {
     Write-Host ("  Python env: " + $G + (Join-Path $SCRIPT_DIR ".venv") + $RST)
 }
-Write-Host ($D + "# ======================================================" + $RST)
+Write-Host ($D + "# =====================================================" + $RST)
 Write-Host ""
 Write-Host ($G + "[+]" + $RST + " Ready! Run Dexter with:")
 Write-Host ""
-Write-Host ("    " + $C + ".\dexter.bat" + $RST + "   (from this directory -- works in cmd.exe too)")
-Write-Host ("    " + $C + ".\dexter.ps1" + $RST + "   (directly in PowerShell)")
+Write-Host ("    " + $C + ".\dexter.bat" + $RST + "   (from this directory)")
+Write-Host ("    " + $C + ".\dexter.ps1" + $RST + "   (PowerShell directly)")
 Write-Host ""
-Write-Host "  To run from anywhere, add the toolkit directory to your PATH:"
+Write-Host "  To run from anywhere, add the toolkit dir to your PATH:"
 $_q = [char]34
 Write-Host ("  " + $Y + "setx PATH " + $_q + "%PATH%;" + $SCRIPT_DIR + $_q + $RST)
 Write-Host ""
